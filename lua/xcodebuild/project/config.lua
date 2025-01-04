@@ -45,7 +45,8 @@ M.device_cache = nil
 ---@type PlatformId|nil
 local last_platform = nil
 
-local device_cache_filepath = vim.fn.getcwd() .. "/.nvim/xcodebuild/devices.json"
+local relative_config_dir = "/.nvim/xcodebuild/"
+local relative_device_cache_filepath = relative_config_dir .. "devices.json"
 
 ---Returns the filepath of the settings JSON file based on the
 ---current working directory.
@@ -117,12 +118,14 @@ end
 ---Saves the device cache to the JSON file at `.nvim/xcodebuild/devices.json`.
 function M.save_device_cache()
   local json = vim.split(vim.fn.json_encode(M.device_cache), "\n", { plain = true })
+  local device_cache_filepath = vim.fn.getcwd() .. relative_device_cache_filepath
   vim.fn.writefile(json, device_cache_filepath)
 end
 
 ---Loads the device cache from the JSON file at `.nvim/xcodebuild/devices.json`.
 function M.load_device_cache()
   local util = require("xcodebuild.util")
+  local device_cache_filepath = vim.fn.getcwd() .. relative_device_cache_filepath
   local success, content = util.readfile(device_cache_filepath)
   if success then
     M.device_cache = vim.fn.json_decode(content)
