@@ -325,7 +325,7 @@ function M.show(title, items, callback, opts)
 
   opts = opts or {}
 
-  activePicker = telescopePickers.new(require("telescope.themes").get_dropdown({}), {
+  activePicker = telescopePickers.new(require("telescope.themes").get_ivy({}), {
     prompt_title = title,
     finder = telescopeFinders.new_table({
       results = items,
