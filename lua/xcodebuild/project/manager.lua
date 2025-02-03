@@ -679,15 +679,27 @@ function M.guess_target(groupPath)
   return run_list_targets_for_group(groupPath)
 end
 
+---Finds the targets for the current file.
+---@return string[]
+function M.get_current_file_targets()
+  if not helpers.validate_project({ requiresXcodeproj = true }) or not validate_xcodeproj_tool() then
+    return {}
+  end
+
+  local filepath = vim.fn.expand("%:p")
+  local targets = run("list_targets_for_file", { filepath })
+
+  return targets
+end
+
 ---Shows the targets for the current file.
 function M.show_current_file_targets()
   if not helpers.validate_project({ requiresXcodeproj = true }) or not validate_xcodeproj_tool() then
     return
   end
 
-  local filepath = vim.fn.expand("%:p")
   local filename = vim.fn.expand("%:t")
-  local targets = run("list_targets_for_file", { filepath })
+  local targets = M.get_current_file_targets()
   pickers.show("Target Membership of " .. filename, targets)
 end
 

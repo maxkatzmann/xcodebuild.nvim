@@ -468,6 +468,9 @@ end
 ---@param opts XcodeBuildOptions
 ---@return number # job id
 function M.build_project(opts)
+  local appdata = require("xcodebuild.project.appdata")
+  vim.fn.delete(appdata.build_xcresult_filepath, "rf")
+
   local command = {
     "xcodebuild",
     opts.clean and "clean" or nil,
@@ -478,6 +481,8 @@ function M.build_project(opts)
     opts.scheme,
     "-destination",
     "id=" .. opts.destination,
+    "-resultBundlePath",
+    appdata.build_xcresult_filepath,
   }
   command = util.merge_array(command, opts.extraBuildArgs)
   command = util.skip_nil(command)
@@ -632,7 +637,7 @@ function M.install_app_on_device(destination, appPath, callback)
   return vim.fn.jobstart(command, {
     stderr_buffered = true,
     on_stderr = show_stderr_output,
-    on_exit = callback_or_error("installl", callback),
+    on_exit = callback_or_error("install", callback),
   })
 end
 
@@ -839,7 +844,7 @@ function M.uninstall_app_from_simulator(destination, bundleId, callback)
 
   return vim.fn.jobstart(command, {
     stdout_buffered = true,
-    on_exit = callback_or_error("uninstalll", callback),
+    on_exit = callback_or_error("uninstall", callback),
   })
 end
 
@@ -855,7 +860,7 @@ function M.uninstall_app_from_device(destination, bundleId, callback)
   return vim.fn.jobstart(command, {
     stderr_buffered = true,
     on_stderr = show_stderr_output,
-    on_exit = callback_or_error("uninstalll", callback),
+    on_exit = callback_or_error("uninstall", callback),
   })
 end
 
@@ -1010,6 +1015,9 @@ end
 ---@param opts XcodeTestOptions
 ---@return number # job id
 function M.run_tests(opts)
+  local appdata = require("xcodebuild.project.appdata")
+  vim.fn.delete(appdata.test_xcresult_filepath, "rf")
+
   local command = {
     "xcodebuild",
     opts.withoutBuilding and "test-without-building" or "test",
@@ -1021,6 +1029,8 @@ function M.run_tests(opts)
     opts.projectFile,
     opts.testPlan and "-testPlan" or nil,
     opts.testPlan,
+    "-resultBundlePath",
+    appdata.test_xcresult_filepath,
   }
   command = util.merge_array(command, opts.extraTestArgs)
   command = util.skip_nil(command)

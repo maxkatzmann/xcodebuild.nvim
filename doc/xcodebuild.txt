@@ -198,6 +198,7 @@ M.setup({options})                                            *xcodebuild.setup*
         },
         xcode_build_server = {
           enabled = true, -- enable calling "xcode-build-server config" when project config changes
+          guess_scheme = false, -- run "xcode-build-server config" with the scheme matching the current file's target
         },
         nvim_tree = {
           enabled = true, -- enable updating Xcode project files when using nvim-tree
@@ -292,6 +293,7 @@ External tools
  - `Xcodeproj` to manage project files within Neovim.
  - `Ruby` to use `Xcodeproj` gem.
  - `pymobiledevice3` to debug on physical devices and/or run apps on devices below iOS 17.
+ - `jq` to get some information from `pymobiledevice3`.
  - `xcode-build-server` to make LSP work properly with xcodeproj/xcworkspace.
  - `codelldb` to debug applications.
  - `ripgrep` to find matching test files while using Swift Testing framework.
@@ -299,7 +301,7 @@ External tools
 
 Installation
 >bash
-  brew install xcode-build-server xcbeautify ruby pipx rg
+  brew install xcode-build-server xcbeautify ruby pipx rg jq
   gem install xcodeproj
   pipx install pymobiledevice3
 <
@@ -477,6 +479,15 @@ Testing
  | `XcodebuildTestFailing`      | Rerun previously failed tests             |
  | `XcodebuildTestRepeat`       | Repeat the last test run                  |
  | `XcodebuildFailingSnapshots` | Show a picker with failing snapshot tests |
+
+Debugging
+
+ | Command                    | Description                               |
+ | -------------------------- | ----------------------------------------- |
+ | `XcodebuildAttachDebugger`   | Attach debugger to the running process      |
+ | `XcodebuildDetachDebugger`   | Detach debugger without killing the process |
+ | `XcodebuildBuildDebug`       | Build, install, and debug the app           |
+ | `XcodebuildDebug`            | Install and debug the app without building  |
 
 Code Coverage
 
@@ -1818,7 +1829,7 @@ M.is_configured()                      *xcodebuild.project.config.is_configured*
 
                                      *xcodebuild.project.config.update_settings*
 M.update_settings({opts}, {callback})
-  Updates the settings (`appPath`, `productName`, and `bundleId`) based on
+  Updates the settings (`appPath`, `productName`, `buildDir`, and `bundleId`) based on
   the current project.
   Calls `xcodebuild` commands to get the build settings.
 
@@ -2230,6 +2241,14 @@ M.guess_target({groupPath})            *xcodebuild.project.manager.guess_target*
     (string[]|nil)
 
 
+                           *xcodebuild.project.manager.get_current_file_targets*
+M.get_current_file_targets()
+  Finds the targets for the current file.
+
+  Returns: ~
+    (string[])
+
+
                           *xcodebuild.project.manager.show_current_file_targets*
 M.show_current_file_targets()
   Shows the targets for the current file.
@@ -2497,6 +2516,17 @@ M.find_app_path({destination}, {bundleId})
 
   Returns: ~
     (string|nil)   app path
+
+
+                                 *xcodebuild.platform.device_proxy.find_app_pid*
+M.find_app_pid({processName})
+  Returns the PID of the application with the provided name.
+
+  Parameters: ~
+    {processName}  (string)
+
+  Returns: ~
+    (string|nil)   pid
 
 
                           *xcodebuild.platform.device_proxy.start_secure_server*
@@ -3535,6 +3565,19 @@ See:
   https://github.com/vadimcn/codelldb
 
 
+                                   *xcodebuild.integrations.dap.detach_debugger*
+M.detach_debugger()
+  Detaches the debugger from the running application.
+
+
+                                  *xcodebuild.integrations.dap.attach_and_debug*
+M.attach_and_debug({callback})
+  Attaches the debugger to the running application.
+
+  Parameters: ~
+    {callback}  (function|nil)
+
+
                                    *xcodebuild.integrations.dap.build_and_debug*
 M.build_and_debug({callback})
   Builds, installs and runs the project. Also, it starts the debugger.
@@ -3697,6 +3740,16 @@ M.get_actions()                        *xcodebuild.integrations.dap.get_actions*
   @return table<{name:string,action:function}>
 
 
+                            *xcodebuild.integrations.dap.register_user_commands*
+M.register_user_commands()
+  Registers user commands for the `nvim-dap` plugin integration.
+  Commands:
+    - `XcodebuildAttachDebugger` - starts the debugger session.
+    - `XcodebuildDetachDebugger` - disconnects the debugger session.
+    - `XcodebuildBuildDebug` - builds, installs, and runs the project with the debugger.
+    - `XcodebuildDebug` - installs and runs the project with the debugger.
+
+
                                              *xcodebuild.integrations.dap.setup*
 M.setup({codelldbPath}, {loadBreakpoints})
   Sets up the adapter and configuration for the `nvim-dap` plugin.
@@ -3748,10 +3801,11 @@ M.set_mode({mode})
 
 
                  *xcodebuild.integrations.remote_debugger.start_remote_debugger*
-M.start_remote_debugger({callback})
+M.start_remote_debugger({opts}, {callback})
   Starts the remote debugger based on the mode.
 
   Parameters: ~
+    {opts}      ({attach:boolean}|nil)
     {callback}  (function|nil)
 
 
@@ -4002,6 +4056,50 @@ M.run_config({projectFile}, {scheme})
 
   Returns: ~
     (number)   job id
+
+
+              *xcodebuild.integrations.xcode-build-server.run_config_if_enabled*
+M.run_config_if_enabled({scheme})
+  Calls "config" command of xcode-build-server in order to update buildServer.json file.
+  This function is called only if the integration is enabled and the
+  xcode-build-server is installed.
+
+  Parameters: ~
+    {scheme}  (string|nil)
+
+
+              *xcodebuild.integrations.xcode-build-server.update_cached_schemes*
+M.update_cached_schemes({schemes})
+  Updates cached schemes.
+
+  Parameters: ~
+    {schemes}  (string[])
+
+
+               *xcodebuild.integrations.xcode-build-server.clear_cached_schemes*
+M.clear_cached_schemes()
+  Clears cached schemes.
+
+
+                                                       *xcodebuild.guess-scheme*
+                       *xcodebuild.integrations.xcode-build-server.guess_scheme*
+M.guess_scheme()
+  This function is responsible for running the `xcode-build-server config` command
+  with the scheme matching the current file's target. It's not perfect, because
+  schemes can have different names than targets, but it might be helpful in some
+  cases.
+
+  You can enable it by setting `guess_scheme` to `true` in the configuration.
+  It will be triggered every time you enter a `Swift` buffer, so the performance
+  might be affected.
+
+  Schemes are cached to avoid unnecessary calls to `xcodebuild` when switching
+  between files. To clear the cache, you can use the `clear_cached_schemes`
+  function, restart Neovim, or show schemes picker.
+
+
+                              *xcodebuild.integrations.xcode-build-server.setup*
+M.setup()
 
 
 ==============================================================================

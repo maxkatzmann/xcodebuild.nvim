@@ -135,6 +135,7 @@ local defaults = {
     },
     xcode_build_server = {
       enabled = true, -- enable calling "xcode-build-server config" when project config changes
+      guess_scheme = false, -- run "xcode-build-server config" with the scheme matching the current file's target
     },
     nvim_tree = {
       enabled = true, -- enable updating Xcode project files when using nvim-tree

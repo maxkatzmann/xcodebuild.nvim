@@ -219,6 +219,7 @@ end
 ---    },
 ---    xcode_build_server = {
 ---      enabled = true, -- enable calling "xcode-build-server config" when project config changes
+---      guess_scheme = false, -- run "xcode-build-server config" with the scheme matching the current file's target
 ---    },
 ---    nvim_tree = {
 ---      enabled = true, -- enable updating Xcode project files when using nvim-tree
@@ -256,6 +257,7 @@ function M.setup(options)
   local nvimTree = require("xcodebuild.integrations.nvim-tree")
   local oilNvim = require("xcodebuild.integrations.oil-nvim")
   local neoTree = require("xcodebuild.integrations.neo-tree")
+  local xcodeBuildServer = require("xcodebuild.integrations.xcode-build-server")
 
   autocmd.setup()
   projectConfig.load_settings()
@@ -267,6 +269,7 @@ function M.setup(options)
   nvimTree.setup()
   oilNvim.setup()
   neoTree.setup()
+  xcodeBuildServer.setup()
   setupHighlights()
   warnAboutOldConfig()
 
