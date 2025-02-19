@@ -52,6 +52,7 @@ local projectConfig = require("xcodebuild.project.config")
 local device = require("xcodebuild.platform.device")
 local actions = require("xcodebuild.actions")
 local remoteDebugger = require("xcodebuild.integrations.remote_debugger")
+local dapSymbolicate = require("xcodebuild.integrations.dap-symbolicate")
 
 local M = {}
 
@@ -74,6 +75,7 @@ local function start_dap()
     return
   end
 
+  dapSymbolicate.dap_started()
   dap.run(dap.configurations.swift[1])
 end
 
@@ -385,6 +387,11 @@ function M.clear_console()
     return
   end
 
+  if vim.bo.buftype == "terminal" then
+    notifications.send_error("Cannot clear DAP console while debugging macOS apps.")
+    return
+  end
+
   vim.bo[bufnr].modifiable = true
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
   vim.bo[bufnr].modified = false
@@ -411,6 +418,13 @@ function M.update_console(output, append)
   if util.is_empty(output) then
     return
   end
+
+  dapSymbolicate.process_logs(output, function(symbolicated)
+    vim.bo[bufnr].modifiable = true
+    vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, symbolicated)
+    vim.bo[bufnr].modified = false
+    vim.bo[bufnr].modifiable = false
+  end)
 
   vim.bo[bufnr].modifiable = true
 
@@ -609,12 +623,15 @@ end
 ---
 ---Sample {codelldbPath} - `/your/path/to/codelldb-aarch64-darwin/extension/adapter/codelldb`
 ---{loadBreakpoints} - if true or nil, sets up an autocmd to load breakpoints when a Swift file is opened.
+---{lldbPath} - default: `/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB`
+---Provide {lldbPath} if your Xcode installation is not in the default location.
 ---@param codelldbPath string
 ---@param loadBreakpoints boolean|nil default: true
-function M.setup(codelldbPath, loadBreakpoints)
+---@param lldbPath string|nil
+function M.setup(codelldbPath, loadBreakpoints, lldbPath)
   local dap = require("dap")
   dap.configurations.swift = M.get_swift_configuration()
-  dap.adapters.codelldb = M.get_codelldb_adapter(codelldbPath)
+  dap.adapters.codelldb = M.get_codelldb_adapter(codelldbPath, lldbPath)
   dap.defaults.fallback.exception_breakpoints = {}
 
   M.register_user_commands()
