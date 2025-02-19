@@ -309,64 +309,63 @@ function M.show(title, items, callback, opts)
 
   opts = opts or {}
 
-  activePicker = telescopePickers.new(
-    require("telescope.themes").get_ivy({
-      borderchars = { " ", " ", " ", " ", " ", " ", " ", " " },
-      layout_config = {
-        height = 0.4,
-      },
-      winblend = vim.o.winblend,
+  activePicker = telescopePickers.new({
+    layout_strategy = "custom",
+    sorting_strategy = "ascending",
+    path_display = {
+      "shorten",
+    },
+    borderchars = { "─", " ", " ", " ", " ", " ", " ", " " },
+    winblend = vim.o.winblend,
+  }, {
+    prompt_title = title,
+    finder = telescopeFinders.new_table({
+      results = items,
+      entry_maker = entry_maker,
     }),
-    {
-      prompt_title = title,
-      finder = telescopeFinders.new_table({
-        results = items,
-        entry_maker = entry_maker,
-      }),
-      sorter = telescopeConfig.generic_sorter(),
-      file_ignore_patterns = {},
-      attach_mappings = function(prompt_bufnr, _)
-        if opts.on_refresh ~= nil then
-          vim.keymap.set({ "n", "i" }, mappings.refresh_devices, function()
-            start_telescope_spinner()
-            opts.on_refresh()
-          end, { silent = true, buffer = prompt_bufnr })
+    sorter = telescopeConfig.generic_sorter(),
+    file_ignore_patterns = {},
+    attach_mappings = function(prompt_bufnr, _)
+      if opts.on_refresh ~= nil then
+        vim.keymap.set({ "n", "i" }, mappings.refresh_devices, function()
+          start_telescope_spinner()
+          opts.on_refresh()
+        end, { silent = true, buffer = prompt_bufnr })
+      end
+
+      if opts.modifiable then
+        set_picker_actions(prompt_bufnr, opts)
+      end
+
+      telescopeActions.select_default:replace(function()
+        local selection = telescopeState.get_selected_entry()
+
+        local results = {}
+        if opts.multiselect then
+          telescopeActionsUtils.map_selections(prompt_bufnr, function(entry)
+            table.insert(results, entry.value)
+          end)
+
+          if util.is_empty(results) and selection then
+            table.insert(results, selection.value)
+          end
         end
 
-        if opts.modifiable then
-          set_picker_actions(prompt_bufnr, opts)
+        if opts.close_on_select and selection then
+          telescopeActions.close(prompt_bufnr)
         end
 
-        telescopeActions.select_default:replace(function()
-          local selection = telescopeState.get_selected_entry()
-
-          local results = {}
+        if callback and selection then
           if opts.multiselect then
-            telescopeActionsUtils.map_selections(prompt_bufnr, function(entry)
-              table.insert(results, entry.value)
-            end)
-
-            if util.is_empty(results) and selection then
-              table.insert(results, selection.value)
-            end
+            callback(results)
+          else
+            callback(selection, selection.index)
           end
-
-          if opts.close_on_select and selection then
-            telescopeActions.close(prompt_bufnr)
-          end
-
-          if callback and selection then
-            if opts.multiselect then
-              callback(results)
-            else
-              callback(selection, selection.index)
-            end
-          end
-        end)
-        return true
-      end,
-    }
-  )
+        end
+      end)
+      return true
+    end,
+  })
 
   activePicker:find()
 end
