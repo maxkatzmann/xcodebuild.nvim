@@ -6,6 +6,7 @@
 --- - `Neovim 0.9.5+`
 --- - `telescope.nvim` to present pickers.
 --- - `nui.nvim` to present floating code coverage report.
+--- - `snacks.nvim` to show previews for SwiftUI, UIKit, and AppKit views.
 --- - `nvim-tree`, `neo-tree.nvim`, or `oil.nvim` to visually manage your project files.
 --- - `nvim-dap` and `nvim-dap-ui` to debug apps.
 --- - `nvim-treesitter` + Swift parser to show test results for tests written using `Quick` framework.
@@ -23,7 +24,7 @@
 ---
 ---Installation
 --->bash
----  brew install xcode-build-server xcbeautify ruby pipx rg jq
+---  brew install xcode-build-server xcbeautify ruby pipx rg jq coreutils
 ---  gem install xcodeproj
 ---  pipx install pymobiledevice3
 ---<

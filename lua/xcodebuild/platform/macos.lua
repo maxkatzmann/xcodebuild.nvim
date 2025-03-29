@@ -15,6 +15,24 @@ local M = {}
 ---@return number # job id
 function M.launch_app(appPath, callback)
   local command = { "open", appPath }
+  local fifoPath = "/tmp/xcodebuild_nvim_" .. util.get_filename(appPath) .. ".fifo"
+
+  local isStdbufInstalled = vim.fn.executable("stdbuf") ~= 0
+  if isStdbufInstalled then
+    vim.fn.delete(fifoPath)
+    vim.fn.system({ "mkfifo", fifoPath })
+
+    command = {
+      "stdbuf",
+      "-o0",
+      "open",
+      "--stdout",
+      fifoPath,
+      appPath,
+    }
+
+    appdata.clear_app_logs()
+  end
 
   local runArgs = appdata.read_run_args()
   if runArgs then
@@ -24,7 +42,8 @@ function M.launch_app(appPath, callback)
     end
   end
 
-  return vim.fn.jobstart(command, {
+  local launchJobId = vim.fn.jobstart(command, {
+    clear_env = true,
     env = appdata.read_env_vars(),
     on_exit = function(_, code)
       if code == 0 then
@@ -32,6 +51,26 @@ function M.launch_app(appPath, callback)
       else
         notifications.send_warning("Could not launch app, code: " .. code)
       end
+    end,
+  })
+
+  if not isStdbufInstalled then
+    return launchJobId
+  end
+
+  local function write_logs(_, output)
+    if output[#output] == "" then
+      table.remove(output, #output)
+    end
+    appdata.append_app_logs(output)
+  end
+
+  return vim.fn.jobstart({ "cat", fifoPath }, {
+    on_stdout = write_logs,
+    on_stderr = write_logs,
+    on_exit = function()
+      vim.fn.delete(fifoPath)
+      write_logs(nil, { "", "[Process finished]" })
     end,
   })
 end

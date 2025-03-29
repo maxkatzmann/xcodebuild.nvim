@@ -35,6 +35,11 @@ local optional_dependencies = {
     url = "https://github.com/sharkdp/fd",
     message = "Improves performance when searching for files. Required for Assets Manager.",
   },
+  {
+    binary = "stdbuf",
+    url = "https://formulae.brew.sh/formula/coreutils#default",
+    message = "Allows to see macOS app logs without launching debugger.",
+  },
 }
 
 local required_dependencies = {
@@ -85,6 +90,12 @@ local plugins = {
     lib = "oil",
     optional = true,
     info = "(Optional to visually manage project files)",
+  },
+  {
+    name = "snacks.nvim",
+    lib = "snacks",
+    optional = true,
+    info = "(Optional to show previews for SwiftUI, UIKit, and AppKit views)",
   },
   {
     name = "nvim-dap",
